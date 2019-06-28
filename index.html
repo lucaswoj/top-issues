@@ -128,7 +128,7 @@ function getScore(settings, issue) {
     return (
         getReactionsScore(settings, issue) +
         getLabelsScore(settings, issue) +
-        getCreatedAtScore(settings, issue) +
+        getCreatedScore(settings, issue) +
         getCommentsScore(settings, issue)
     );
 
@@ -143,25 +143,30 @@ function getReactionsScore(settings, issue) {
     }, 0);
 }
 
-function getCreatedAtScore(settings, issue) {
-    return -10 * Math.log(Date.parse(issue.created_at) / Date.now());
+function getCreatedScore(settings, issue) {
+    return settings.createdWeight * -10 * Math.log(Date.parse(issue.created_at) / Date.now());
 }
 
 function getCommentsScore(settings, issue) {
-    return 3 * issue.comments / (issue.comments + 2);
+    return settings.commentsWeight * issue.comments / (issue.comments + 2);
 }
 
 function getLabelsScore(settings, issue) {
-    return issue.labels.reduce((score, label) => score + (settings.labels[label.name] || 0), 0);
+    return issue.labels.reduce((score, label) => score + (settings.labels[stripEmoji(label.name).trim()] || 0), 0);
+}
+
+// https://stackoverflow.com/a/41543705
+function stripEmoji(text) {
+    return text.replace(/([\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
 }
 
 const reactionEmojis = {
-    '+1': "👍",
-    '-1': "👎",
-    'laugh': "😆",
-    'hooray': "🎉",
-    'confused': "😕",
-    'heart': "❤️"
+    '+1': "&#128077;",
+    '-1': "&#128078;",
+    'laugh': "&#128518;",
+    'hooray': "&#127881;",
+    'confused': "&#128533;",
+    'heart': "&#10084;"
 };
 
 function getReactionsHTML(issue) {
@@ -170,7 +175,7 @@ function getReactionsHTML(issue) {
         const emoji = reactionEmojis[name];
         if (!count || !emoji) return;
         return `<div class="inline" style="color: #555; margin: 0 3px;">
-            ${count} ${emoji}
+            ${count} ${emoji}
         </div>`;
     }).join('\n');
 }
@@ -199,7 +204,7 @@ fetchSettings(repository).then(function(settings) {
             }).join('\n')
         }</td>
         <td title="Not scored">${issue.assignee ? `<a href="${issue.assignee.html_url}"><img width="20" height="20" style="display:inline-block;" class="round" src="${issue.assignee.avatar_url}"> ${issue.assignee.login}</a>` : ''}</td>
-        <td title="${getCreatedAtScore(settings, issue).toFixed(2)} points" sorttable_customkey=${moment(issue.created_at).unix()}>${moment(issue.created_at).fromNow()}</td>
+        <td title="${getCreatedScore(settings, issue).toFixed(2)} points" sorttable_customkey=${moment(issue.created_at).unix()}>${moment(issue.created_at).fromNow()}</td>
         <td title="Not scored" sorttable_customkey=${moment(issue.updated_at).unix()}>${moment(issue.updated_at).fromNow()}</td>
         <td>${getScore(settings, issue).toFixed(1)}</td>
         </tr>
