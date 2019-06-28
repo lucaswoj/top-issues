@@ -96,9 +96,12 @@ const defaultSettings = {
 }
 
 function fetchSettings(repository) {
-    return fetch(`https://raw.githubusercontent.com/${repository}/master/.topissuesrc`)
+    return fetch(
+        `https://api.github.com/repos/${repository}/contents/.topissuesrc`,
+        {headers: githubUsername && { 'Authorization': 'Basic ' + btoa(`${githubUsername}:${githubAccessToken}`)}}
+    )
         .then((response) => response.status === 404 ? {} : response.json())
-        .then((settings) => Object.assign({}, defaultSettings, settings))
+        .then((settings) => Object.assign({}, defaultSettings, JSON.parse(atob(settings.content))))
 }
 
 function getPageCountFromLink(link) {
